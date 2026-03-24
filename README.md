@@ -12,19 +12,15 @@ Private development dashboard for managing Lumeya Connect.
 ## Auth
 Password: `lumeya2026`
 
-## Deploy to Vercel
+## Hosting
+Self-hosted on Lucas's VPS at **lumeya.mlfrance.dev** (port 8012, behind Cloudflare tunnel).
 
-1. Go to [vercel.com/new](https://vercel.com/new)
-2. Click **Import Git Repository**
-3. Select `atianalew-ctrl/lumeya-hub`
-4. Leave all settings as default — it'll auto-detect Next.js
-5. Click **Deploy**
+```bash
+# Build
+npx next build
 
-That's it! No environment variables needed.
+# Start
+npx next start -p 8012
+```
 
-## Stack
-- Next.js 16 (App Router)
-- TypeScript + Tailwind CSS v4
-- @dnd-kit for drag-and-drop
-- Supabase REST API (direct)
-- GitHub API (for commit history)
+The dev hub is NOT on Vercel. The main Lumeya Connect site (lumeya-connect.vercel.app) remains on Vercel.

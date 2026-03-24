@@ -54,7 +54,7 @@ export default function DocsPage() {
             <Item label="GitHub repo" value="github.com/atianalew-ctrl/lumeya-connect" href="https://github.com/atianalew-ctrl/lumeya-connect" />
             <Item label="Supabase dashboard" value="supabase.com/dashboard/project/xbgdynlutmosupfqafap" href="https://supabase.com/dashboard/project/xbgdynlutmosupfqafap" />
             <Item label="Vercel dashboard" value="vercel.com/atianalew-ctrl/lumeya-connect" href="https://vercel.com/atianalew-ctrl/lumeya-connect" />
-            <Item label="Dev hub (this)" value="lumeya-hub.vercel.app" href="https://lumeya-hub.vercel.app" />
+            <Item label="Dev hub (this)" value="lumeya.mlfrance.dev" href="https://lumeya.mlfrance.dev" />
           </Section>
 
           {/* Supabase Tables */}

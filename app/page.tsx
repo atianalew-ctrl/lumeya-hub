@@ -14,6 +14,7 @@ const phases = [
 
 const quickLinks = [
   { label: "Open site", url: "https://lumeya-connect.vercel.app", color: "#4a6fa5" },
+  { label: "Add creator", url: "https://lumeya-connect.vercel.app/admin", color: "#2d7a4f" },
   { label: "Open admin", url: "https://lumeya-connect.vercel.app/admin", color: "#6b5fa5" },
   { label: "Open Supabase", url: "https://supabase.com/dashboard/project/xbgdynlutmosupfqafap", color: "#3ecf8e" },
   { label: "Open GitHub", url: "https://github.com/atianalew-ctrl/lumeya-connect", color: "#1a1a1a" },
