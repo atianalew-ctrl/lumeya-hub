@@ -1,13 +1,14 @@
 "use client";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
-import { LayoutDashboard, Kanban, Monitor, GitBranch, BookOpen, X } from "lucide-react";
+import { LayoutDashboard, Users, Megaphone, ListChecks, TrendingUp, BookOpen, X } from "lucide-react";
 
 const navItems = [
   { href: "/", label: "Dashboard", icon: LayoutDashboard },
-  { href: "/board", label: "Project Board", icon: Kanban },
-  { href: "/preview", label: "Live Preview", icon: Monitor },
-  { href: "/deploys", label: "Deploy Log", icon: GitBranch },
+  { href: "/creators", label: "Creators", icon: Users },
+  { href: "/campaigns", label: "Campaigns", icon: Megaphone },
+  { href: "/waitlist", label: "Waitlist", icon: ListChecks },
+  { href: "/revenue", label: "Revenue", icon: TrendingUp },
   { href: "/docs", label: "Docs", icon: BookOpen },
 ];
 
@@ -79,7 +80,7 @@ export default function Sidebar({ open, onClose }: SidebarProps) {
 
         {/* Version */}
         <div className="px-5 py-4 border-t" style={{ borderColor: "var(--border)" }}>
-          <p className="text-xs" style={{ color: "var(--muted-foreground)" }}>Lumeya Connect v0.1</p>
+          <p className="text-xs" style={{ color: "var(--muted-foreground)" }}>Lumeya Hub · v2.0</p>
         </div>
       </aside>
     </>

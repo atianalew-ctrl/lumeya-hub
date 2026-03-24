@@ -1,23 +1,33 @@
 "use client";
 import { useState, useEffect } from "react";
+import Link from "next/link";
 import AuthGate from "@/components/AuthGate";
 import AppShell from "@/components/AppShell";
 import { ExternalLink } from "lucide-react";
 
 const phases = [
-  { name: "Phase 1: Foundation", pct: 90, color: "#4a6fa5" },
-  { name: "Phase 2: Creator Hub", pct: 55, color: "#6b8fc5" },
-  { name: "Phase 3: Brand Portal", pct: 20, color: "#8fa8d0" },
-  { name: "Phase 4: Marketplace", pct: 5, color: "#b0c4de" },
-  { name: "Phase 5: Scale", pct: 0, color: "#d0dcea" },
+  { name: "Phase 1: Foundation", pct: 95, color: "#4a6fa5" },
+  { name: "Phase 2: Production Ready", pct: 85, color: "#6b8fc5" },
+  { name: "Phase 3: Creator Tools", pct: 70, color: "#8fa8d0" },
+  { name: "Phase 4: Campaign System", pct: 60, color: "#b0c4de" },
+  { name: "Phase 5: Payments & Scale", pct: 10, color: "#d0dcea" },
 ];
 
 const quickLinks = [
   { label: "Open site", url: "https://lumeya-connect.vercel.app", color: "#4a6fa5" },
-  { label: "Add creator", url: "https://lumeya-connect.vercel.app/admin", color: "#2d7a4f" },
-  { label: "Open admin", url: "https://lumeya-connect.vercel.app/admin", color: "#6b5fa5" },
-  { label: "Open Supabase", url: "https://supabase.com/dashboard/project/xbgdynlutmosupfqafap", color: "#3ecf8e" },
-  { label: "Open GitHub", url: "https://github.com/atianalew-ctrl/lumeya-connect", color: "#1a1a1a" },
+  { label: "Admin panel", url: "https://lumeya-connect.vercel.app/admin/dashboard", color: "#6b5fa5" },
+  { label: "Supabase", url: "https://supabase.com/dashboard/project/xbgdynlutmosupfqafap", color: "#3ecf8e" },
+  { label: "GitHub", url: "https://github.com/atianalew-ctrl/lumeya-connect", color: "#1a1a1a" },
+];
+
+const todos = [
+  "Buy lumeya.io domain (~€10 on namecheap.com)",
+  "Upgrade Supabase to Pro ($25/mo) — prevents DB going offline",
+  "Set up hello@lumeya.io email",
+  "Get OpenAI API key → send to Audrey for AI Matchmaker",
+  "Create Stripe account → send keys to Audrey for payments",
+  "Create @joinlumeya Instagram + LinkedIn page",
+  "Get signed consent from 8 creators (Ronja, Nikoline, Sussie, Amalie, Nella, Celina, Daniel, Sakura)",
 ];
 
 interface Stats {
@@ -25,6 +35,12 @@ interface Stats {
   pendingApprovals: number | string;
   waitlistSignups: number | string;
   openOpportunities: number | string;
+}
+
+interface Alerts {
+  pendingCreators: number;
+  newWaitlistToday: number;
+  pendingCampaigns: number;
 }
 
 interface Commit {
@@ -53,31 +69,64 @@ function DashboardContent() {
     waitlistSignups: "…",
     openOpportunities: "…",
   });
+  const [alerts, setAlerts] = useState<Alerts | null>(null);
   const [commit, setCommit] = useState<Commit | null>(null);
   const [loadingStats, setLoadingStats] = useState(true);
 
   useEffect(() => {
-    // Fetch stats
     fetch("/api/stats")
       .then((r) => r.json())
-      .then((d) => {
-        setStats(d);
-        setLoadingStats(false);
-      })
-      .catch(() => {
-        setStats({ creators: "—", pendingApprovals: "—", waitlistSignups: "—", openOpportunities: "—" });
-        setLoadingStats(false);
-      });
+      .then((d) => { setStats(d); setLoadingStats(false); })
+      .catch(() => { setStats({ creators: "—", pendingApprovals: "—", waitlistSignups: "—", openOpportunities: "—" }); setLoadingStats(false); });
 
-    // Fetch commit
+    fetch("/api/alerts")
+      .then((r) => r.json())
+      .then((d) => setAlerts(d))
+      .catch(() => {});
+
     fetch("/api/commit")
       .then((r) => r.json())
       .then((d) => setCommit(d))
       .catch(() => {});
   }, []);
 
+  const hasAlerts = alerts && (alerts.pendingCreators > 0 || alerts.newWaitlistToday > 0 || alerts.pendingCampaigns > 0);
+
   return (
     <div className="space-y-6 max-w-4xl">
+
+      {/* Alerts */}
+      {hasAlerts && (
+        <section>
+          <div className="flex flex-wrap gap-2">
+            {alerts!.pendingCreators > 0 && (
+              <Link href="/creators">
+                <span className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-full text-xs font-medium cursor-pointer hover:opacity-80 transition-opacity"
+                  style={{ background: "#fef3c7", color: "#92400e" }}>
+                  ⚠️ {alerts!.pendingCreators} creator{alerts!.pendingCreators !== 1 ? "s" : ""} pending approval
+                </span>
+              </Link>
+            )}
+            {alerts!.newWaitlistToday > 0 && (
+              <Link href="/waitlist">
+                <span className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-full text-xs font-medium cursor-pointer hover:opacity-80 transition-opacity"
+                  style={{ background: "#fef3c7", color: "#92400e" }}>
+                  📥 {alerts!.newWaitlistToday} new waitlist signup{alerts!.newWaitlistToday !== 1 ? "s" : ""} today
+                </span>
+              </Link>
+            )}
+            {alerts!.pendingCampaigns > 0 && (
+              <Link href="/campaigns">
+                <span className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-full text-xs font-medium cursor-pointer hover:opacity-80 transition-opacity"
+                  style={{ background: "#fef3c7", color: "#92400e" }}>
+                  💼 {alerts!.pendingCampaigns} campaign{alerts!.pendingCampaigns !== 1 ? "s" : ""} submitted
+                </span>
+              </Link>
+            )}
+          </div>
+        </section>
+      )}
+
       {/* Stats */}
       <section>
         <h2 className="text-xs font-semibold uppercase tracking-wider mb-3" style={{ color: "var(--muted-foreground)" }}>Platform Stats</h2>
@@ -156,6 +205,22 @@ function DashboardContent() {
           ))}
         </div>
       </section>
+
+      {/* Pending TODOs */}
+      <section>
+        <h2 className="text-xs font-semibold uppercase tracking-wider mb-3" style={{ color: "var(--muted-foreground)" }}>Pending TODOs</h2>
+        <div className="rounded-xl p-5 border" style={{ background: "var(--card-bg)", borderColor: "var(--border)" }}>
+          <div className="space-y-3">
+            {todos.map((todo, i) => (
+              <div key={i} className="flex items-start gap-3">
+                <span className="mt-0.5 text-sm flex-shrink-0">⬜</span>
+                <span className="text-sm" style={{ color: "var(--foreground)" }}>{todo}</span>
+              </div>
+            ))}
+          </div>
+        </div>
+      </section>
+
     </div>
   );
 }
