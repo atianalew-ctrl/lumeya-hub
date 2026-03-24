@@ -5,16 +5,18 @@ import AppShell from "@/components/AppShell";
 
 interface Creator {
   id: string;
-  name: string;
+  display_name: string;
   bio: string | null;
-  niche: string | null;
+  tagline: string | null;
   avatar_url: string | null;
   instagram: string | null;
   tiktok: string | null;
-  follower_count: number | null;
+  followers: number | null;
+  tiktok_followers: number | null;
   engagement_rate: number | null;
   approved: boolean | null;
   created_at: string;
+  region: string | null;
 }
 
 function StatusBadge({ approved }: { approved: boolean | null }) {
@@ -44,15 +46,15 @@ function StatusBadge({ approved }: { approved: boolean | null }) {
 
 function Avatar({ creator }: { creator: Creator }) {
   const [imgError, setImgError] = useState(false);
-  const initials = creator.name
-    ? creator.name.split(" ").map((n) => n[0]).slice(0, 2).join("").toUpperCase()
+  const initials = creator.display_name
+    ? creator.display_name.split(" ").map((n) => n[0]).slice(0, 2).join("").toUpperCase()
     : "?";
 
   if (creator.avatar_url && !imgError) {
     return (
       <img
         src={creator.avatar_url}
-        alt={creator.name}
+        alt={creator.display_name}
         onError={() => setImgError(true)}
         className="w-8 h-8 rounded-full object-cover"
       />
@@ -150,13 +152,13 @@ function CreatorsContent() {
                       <Avatar creator={creator} />
                     </td>
                     <td className="px-4 py-3 font-medium" style={{ color: "var(--foreground)" }}>
-                      {creator.name || "—"}
+                      {creator.display_name || "—"}
                     </td>
                     <td className="px-4 py-3" style={{ color: "var(--muted-foreground)" }}>
-                      {creator.niche || "—"}
+                      {creator.tagline || "—"}
                     </td>
                     <td className="px-4 py-3" style={{ color: "var(--muted-foreground)" }}>
-                      {creator.follower_count ? creator.follower_count.toLocaleString() : "—"}
+                      {creator.followers ? creator.followers.toLocaleString() : "—"}
                     </td>
                     <td className="px-4 py-3" style={{ color: "var(--muted-foreground)" }}>
                       {creator.instagram ? (

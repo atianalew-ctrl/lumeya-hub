@@ -6,7 +6,7 @@ const SUPABASE_SERVICE_KEY = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzd
 export async function GET() {
   try {
     const res = await fetch(
-      `${SUPABASE_URL}/rest/v1/waitlist?select=id,email,created_at&order=created_at.desc`,
+      `${SUPABASE_URL}/rest/v1/brand_waitlist?select=id,email,created_at&order=created_at.desc`,
       {
         headers: {
           apikey: SUPABASE_SERVICE_KEY,

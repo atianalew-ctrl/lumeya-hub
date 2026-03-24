@@ -12,7 +12,7 @@ const headers = {
 export async function GET() {
   try {
     const res = await fetch(
-      `${SUPABASE_URL}/rest/v1/lumeya_creators?select=id,name,bio,niche,avatar_url,instagram,tiktok,follower_count,engagement_rate,approved,created_at&order=created_at.desc`,
+      `${SUPABASE_URL}/rest/v1/lumeya_creators?select=id,display_name,bio,tagline,avatar_url,instagram,tiktok,followers,tiktok_followers,engagement_rate,approved,created_at,region&order=created_at.desc`,
       { headers, next: { revalidate: 0 } }
     );
     if (!res.ok) {

@@ -36,7 +36,7 @@ export async function GET() {
 
   const [pendingCreators, newWaitlistToday, pendingCampaigns] = await Promise.all([
     countQuery("lumeya_creators", "approved=eq.false"),
-    countQuery("waitlist", `created_at=gte.${todayISO}`),
+    countQuery("brand_waitlist", `created_at=gte.${todayISO}`),
     countQuery("campaigns", "status=eq.pending"),
   ]);
 
