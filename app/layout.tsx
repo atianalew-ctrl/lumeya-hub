@@ -2,8 +2,8 @@ import type { Metadata } from "next";
 import "./globals.css";
 
 export const metadata: Metadata = {
-  title: "Lumeya Dev Hub",
-  description: "Private development dashboard for Lumeya Connect",
+  title: "Lumeya HQ",
+  description: "Private operations dashboard for Lumeya Connect",
 };
 
 export default function RootLayout({

@@ -3,22 +3,7 @@ import { useState, useEffect } from "react";
 import Link from "next/link";
 import AuthGate from "@/components/AuthGate";
 import AppShell from "@/components/AppShell";
-import { ExternalLink } from "lucide-react";
-
-const phases = [
-  { name: "Phase 1: Foundation", pct: 95, color: "#4a6fa5" },
-  { name: "Phase 2: Production Ready", pct: 85, color: "#6b8fc5" },
-  { name: "Phase 3: Creator Tools", pct: 70, color: "#8fa8d0" },
-  { name: "Phase 4: Campaign System", pct: 60, color: "#b0c4de" },
-  { name: "Phase 5: Payments & Scale", pct: 10, color: "#d0dcea" },
-];
-
-const quickLinks = [
-  { label: "Open site", url: "https://lumeya-connect.vercel.app", color: "#4a6fa5" },
-  { label: "Admin panel", url: "https://lumeya-connect.vercel.app/admin/dashboard", color: "#6b5fa5" },
-  { label: "Supabase", url: "https://supabase.com/dashboard/project/xbgdynlutmosupfqafap", color: "#3ecf8e" },
-  { label: "GitHub", url: "https://github.com/atianalew-ctrl/lumeya-connect", color: "#1a1a1a" },
-];
+import { ExternalLink, UserPlus, Megaphone, Users, Globe, Briefcase } from "lucide-react";
 
 const todos = [
   "Buy lumeya.io domain (~€10 on namecheap.com)",
@@ -51,15 +36,22 @@ interface Commit {
   url: string;
 }
 
-function StatCard({ label, value }: { label: string; value: number | string }) {
+function StatCard({ label, value, accent }: { label: string; value: number | string; accent?: string }) {
   return (
     <div className="rounded-xl p-5 border" style={{ background: "var(--card-bg)", borderColor: "var(--border)" }}>
       <p className="text-xs font-medium mb-2" style={{ color: "var(--muted-foreground)" }}>{label}</p>
-      <p className="text-3xl font-semibold" style={{ color: "var(--foreground)" }}>
+      <p className="text-3xl font-semibold" style={{ color: accent ?? "var(--foreground)" }}>
         {value === "—" ? <span style={{ color: "var(--muted-foreground)" }}>—</span> : value}
       </p>
     </div>
   );
+}
+
+function greeting(): string {
+  const hour = new Date().getHours();
+  if (hour < 12) return "Good morning";
+  if (hour < 17) return "Good afternoon";
+  return "Good evening";
 }
 
 function DashboardContent() {
@@ -90,72 +82,140 @@ function DashboardContent() {
       .catch(() => {});
   }, []);
 
-  const hasAlerts = alerts && (alerts.pendingCreators > 0 || alerts.newWaitlistToday > 0 || alerts.pendingCampaigns > 0);
+  const pendingCount = typeof alerts?.pendingCreators === "number" ? alerts.pendingCreators : 0;
+  const oppCount = typeof stats.openOpportunities === "number" ? stats.openOpportunities : 0;
+  const hasAlerts = pendingCount > 0 || (typeof alerts?.newWaitlistToday === "number" && alerts.newWaitlistToday > 0);
+
+  const quickActions = [
+    {
+      icon: <UserPlus size={22} />,
+      label: "Add Creator",
+      desc: "Onboard a new creator",
+      href: "/creators",
+      external: false,
+      color: "#4a6fa5",
+    },
+    {
+      icon: <Megaphone size={22} />,
+      label: "View Campaigns",
+      desc: "Manage brand campaigns",
+      href: "/campaigns",
+      external: false,
+      color: "#6b5fa5",
+    },
+    {
+      icon: <Users size={22} />,
+      label: "Manage Waitlist",
+      desc: "See who signed up",
+      href: "/waitlist",
+      external: false,
+      color: "#3ecf8e",
+    },
+    {
+      icon: <Globe size={22} />,
+      label: "Open Live Site",
+      desc: "lumeya-connect.vercel.app",
+      href: "https://lumeya-connect.vercel.app",
+      external: true,
+      color: "#1a1a1a",
+    },
+    {
+      icon: <Briefcase size={22} />,
+      label: "Post Opportunity",
+      desc: "Create a brand opportunity",
+      href: "/opportunities",
+      external: false,
+      color: "#059669",
+    },
+  ];
 
   return (
     <div className="space-y-6 max-w-4xl">
 
-      {/* Alerts */}
-      {hasAlerts && (
-        <section>
-          <div className="flex flex-wrap gap-2">
-            {alerts!.pendingCreators > 0 && (
-              <Link href="/creators">
-                <span className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-full text-xs font-medium cursor-pointer hover:opacity-80 transition-opacity"
-                  style={{ background: "#fef3c7", color: "#92400e" }}>
-                  ⚠️ {alerts!.pendingCreators} creator{alerts!.pendingCreators !== 1 ? "s" : ""} pending approval
-                </span>
-              </Link>
-            )}
-            {alerts!.newWaitlistToday > 0 && (
-              <Link href="/waitlist">
-                <span className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-full text-xs font-medium cursor-pointer hover:opacity-80 transition-opacity"
-                  style={{ background: "#fef3c7", color: "#92400e" }}>
-                  📥 {alerts!.newWaitlistToday} new waitlist signup{alerts!.newWaitlistToday !== 1 ? "s" : ""} today
-                </span>
-              </Link>
-            )}
-            {alerts!.pendingCampaigns > 0 && (
-              <Link href="/campaigns">
-                <span className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-full text-xs font-medium cursor-pointer hover:opacity-80 transition-opacity"
-                  style={{ background: "#fef3c7", color: "#92400e" }}>
-                  💼 {alerts!.pendingCampaigns} campaign{alerts!.pendingCampaigns !== 1 ? "s" : ""} submitted
-                </span>
-              </Link>
-            )}
-          </div>
-        </section>
-      )}
+      {/* Daily Briefing */}
+      <section className="rounded-xl p-5 border" style={{ background: "var(--card-bg)", borderColor: "var(--border)" }}>
+        <h2 className="text-lg font-semibold mb-3" style={{ color: "var(--foreground)" }}>
+          {greeting()}, Atiana 👋
+        </h2>
+        <div className="space-y-2">
+          {!alerts ? (
+            <p className="text-sm" style={{ color: "var(--muted-foreground)" }}>Loading briefing…</p>
+          ) : (
+            <>
+              {pendingCount > 0 && (
+                <Link href="/creators">
+                  <div className="flex items-center gap-2 text-sm cursor-pointer hover:opacity-80 transition-opacity"
+                    style={{ color: "#92400e" }}>
+                    ⚠️ <span><strong>{pendingCount}</strong> creator{pendingCount !== 1 ? "s" : ""} waiting for approval</span>
+                  </div>
+                </Link>
+              )}
+              {typeof alerts.newWaitlistToday === "number" && alerts.newWaitlistToday > 0 && (
+                <Link href="/waitlist">
+                  <div className="flex items-center gap-2 text-sm cursor-pointer hover:opacity-80 transition-opacity"
+                    style={{ color: "#1d4ed8" }}>
+                    📥 <span><strong>{alerts.newWaitlistToday}</strong> new waitlist signup{alerts.newWaitlistToday !== 1 ? "s" : ""} today</span>
+                  </div>
+                </Link>
+              )}
+              {typeof oppCount === "number" && oppCount > 0 && (
+                <Link href="/opportunities">
+                  <div className="flex items-center gap-2 text-sm cursor-pointer hover:opacity-80 transition-opacity"
+                    style={{ color: "#1d4ed8" }}>
+                    💼 <span><strong>{oppCount}</strong> open opportunit{oppCount !== 1 ? "ies" : "y"} waiting for applicants</span>
+                  </div>
+                </Link>
+              )}
+              {!hasAlerts && oppCount === 0 && (
+                <div className="flex items-center gap-2 text-sm" style={{ color: "#166534" }}>
+                  ✅ Platform looking healthy — nothing urgent today
+                </div>
+              )}
+            </>
+          )}
+        </div>
+      </section>
 
       {/* Stats */}
       <section>
         <h2 className="text-xs font-semibold uppercase tracking-wider mb-3" style={{ color: "var(--muted-foreground)" }}>Platform Stats</h2>
         <div className="grid grid-cols-2 lg:grid-cols-4 gap-3">
-          <StatCard label="Creators" value={loadingStats ? "…" : stats.creators} />
-          <StatCard label="Pending Approvals" value={loadingStats ? "…" : stats.pendingApprovals} />
+          <StatCard label="Total Creators" value={loadingStats ? "…" : stats.creators} />
+          <StatCard label="Pending Approvals" value={loadingStats ? "…" : stats.pendingApprovals} accent={Number(stats.pendingApprovals) > 0 ? "#92400e" : undefined} />
           <StatCard label="Waitlist Signups" value={loadingStats ? "…" : stats.waitlistSignups} />
           <StatCard label="Open Opportunities" value={loadingStats ? "…" : stats.openOpportunities} />
         </div>
       </section>
 
-      {/* Phase Progress */}
+      {/* Quick Actions */}
       <section>
-        <h2 className="text-xs font-semibold uppercase tracking-wider mb-3" style={{ color: "var(--muted-foreground)" }}>Build Progress</h2>
-        <div className="rounded-xl p-5 border space-y-4" style={{ background: "var(--card-bg)", borderColor: "var(--border)" }}>
-          {phases.map((phase) => (
-            <div key={phase.name}>
-              <div className="flex justify-between items-center mb-1.5">
-                <span className="text-sm" style={{ color: "var(--foreground)" }}>{phase.name}</span>
-                <span className="text-xs font-medium" style={{ color: "var(--muted-foreground)" }}>{phase.pct}%</span>
+        <h2 className="text-xs font-semibold uppercase tracking-wider mb-3" style={{ color: "var(--muted-foreground)" }}>Quick Actions</h2>
+        <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-5 gap-3">
+          {quickActions.map((action) => {
+            const inner = (
+              <div
+                className="flex flex-col items-start gap-3 p-4 rounded-xl border transition-all hover:shadow-md hover:-translate-y-0.5 cursor-pointer h-full"
+                style={{ background: "var(--card-bg)", borderColor: "var(--border)" }}
+              >
+                <div className="p-2.5 rounded-lg text-white" style={{ background: action.color }}>
+                  {action.icon}
+                </div>
+                <div>
+                  <p className="font-semibold text-sm" style={{ color: "var(--foreground)" }}>{action.label}</p>
+                  <p className="text-xs mt-0.5" style={{ color: "var(--muted-foreground)" }}>{action.desc}</p>
+                </div>
               </div>
-              <div className="h-2 rounded-full" style={{ background: "var(--muted)" }}>
-                <div
-                  className="h-2 rounded-full transition-all"
-                  style={{ width: `${phase.pct}%`, background: phase.color }}
-                />
-              </div>
-            </div>
-          ))}
+            );
+            return action.external ? (
+              <a key={action.label} href={action.href} target="_blank" rel="noreferrer" className="block">
+                {inner}
+              </a>
+            ) : (
+              <Link key={action.label} href={action.href} className="block">
+                {inner}
+              </Link>
+            );
+          })}
         </div>
       </section>
 
@@ -186,26 +246,6 @@ function DashboardContent() {
         </div>
       </section>
 
-      {/* Quick Actions */}
-      <section>
-        <h2 className="text-xs font-semibold uppercase tracking-wider mb-3" style={{ color: "var(--muted-foreground)" }}>Quick Actions</h2>
-        <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
-          {quickLinks.map((link) => (
-            <a
-              key={link.label}
-              href={link.url}
-              target="_blank"
-              rel="noreferrer"
-              className="flex items-center justify-center gap-2 px-4 py-3 rounded-xl text-sm font-medium text-white transition-opacity hover:opacity-90"
-              style={{ background: link.color }}
-            >
-              <ExternalLink size={14} />
-              {link.label}
-            </a>
-          ))}
-        </div>
-      </section>
-
       {/* Pending TODOs */}
       <section>
         <h2 className="text-xs font-semibold uppercase tracking-wider mb-3" style={{ color: "var(--muted-foreground)" }}>Pending TODOs</h2>
@@ -228,7 +268,7 @@ function DashboardContent() {
 export default function Home() {
   return (
     <AuthGate>
-      <AppShell title="Dashboard">
+      <AppShell title="Mission Control">
         <DashboardContent />
       </AppShell>
     </AuthGate>

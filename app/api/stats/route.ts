@@ -32,7 +32,7 @@ async function countTable(table: string, filter?: string) {
 export async function GET() {
   const [creators, waitlist, opportunities, pendingApprovals] = await Promise.all([
     countTable("lumeya_creators"),
-    countTable("waitlist"),
+    countTable("brand_waitlist"),
     countTable("opportunities"),
     countTable("lumeya_creators", "approved=eq.false"),
   ]);
