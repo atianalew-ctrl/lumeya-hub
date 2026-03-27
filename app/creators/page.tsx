@@ -470,7 +470,9 @@ function SlideOver({ open, onClose, onSave, initial, title, saving, initialPortf
                     set("content_types", updated.join(", "));
                   }}
                   className={`px-4 py-2 rounded-full text-sm font-medium transition-all border ${
-                    (Array.isArray(form.content_types) ? form.content_types : (form.content_types ? form.content_types.split(",").map(t => t.trim()) : [])).includes(type)
+                    (form.content_types && typeof form.content_types === 'string' 
+                      ? form.content_types.split(",").map(t => t.trim())
+                      : []).includes(type)
                       ? "bg-slate-700 text-white border-slate-700"
                       : "bg-white text-slate-600 border-slate-300 hover:border-slate-400"
                   }`}
