@@ -31,6 +31,7 @@ interface Creator {
   portfolio_images: string[] | null;
   video_url: string | null;
   video_urls: string[] | null;
+  brand_collabs_text: string | null;
 }
 
 type FilterTab = "all" | "live" | "pending" | "hidden";
@@ -144,6 +145,7 @@ const emptyForm = {
   avatar_url: "",
   is_verified: false,
   is_trending: false,
+  brand_collabs_text: "",
 };
 
 function fmtFollowers(n: number | null): string {
@@ -647,6 +649,7 @@ function toFormValues(creator: Creator): typeof emptyForm {
     approved: creator.approved === true,
     is_verified: creator.is_verified === true,
     is_trending: creator.is_trending === true,
+    brand_collabs_text: creator.brand_collabs_text ?? "",
   };
 }
 
@@ -766,6 +769,7 @@ function CreatorsContent() {
         content_types: form.content_types ? form.content_types.split(",").map((t: string) => t.trim()).filter(Boolean) : [],
         is_verified: form.is_verified,
         is_trending: form.is_trending,
+        brand_collabs_text: form.brand_collabs_text || null,
         ...(portfolioUrls.length > 0 ? { portfolio_images: portfolioUrls } : {}),
         ...(videoUrls.length > 0 ? { video_urls: videoUrls, video_url: videoUrls[0] } : {}),
       };
@@ -954,6 +958,8 @@ function CreatorsContent() {
         content_types: editingSplitForm.content_types ? editingSplitForm.content_types.split(",").map((t: string) => t.trim()).filter(Boolean) : [],
         is_verified: editingSplitForm.is_verified,
         is_trending: editingSplitForm.is_trending,
+        brand_collabs_text: editingSplitForm.brand_collabs_text || null,
+        portfolio_images: editingSplitForm.portfolio_images || [],
       };
 
       await fetch("/api/creators", {
@@ -979,6 +985,79 @@ function CreatorsContent() {
   // Split-view editor mode
   if (editingSplitId && editingSplitForm) {
     const creator = creators.find(c => c.id === editingSplitId);
+    const [portfolioImages, setPortfolioImages] = useState<string[]>(editingSplitForm.portfolio_images || []);
+    const [videoUrls, setVideoUrls] = useState<string[]>(editingSplitForm.video_urls || []);
+    const [reorderedPortfolio, setReorderedPortfolio] = useState<string[]>(portfolioImages);
+    const [dragSource, setDragSource] = useState<number | null>(null);
+    const [deletingIndex, setDeletingIndex] = useState<number | null>(null);
+    const [replacingIndex, setReplacingIndex] = useState<number | null>(null);
+
+    const handlePortfolioDelete = async (index: number) => {
+      const url = reorderedPortfolio[index];
+      setDeletingIndex(index);
+      try {
+        // Extract path from URL for deletion
+        const path = url.split('/public/creator-portfolio/')[1];
+        if (path) {
+          await fetch(`${SUPABASE_URL}/storage/v1/object/creator-portfolio/${decodeURIComponent(path)}`, {
+            method: "DELETE",
+            headers: {
+              apikey: SUPABASE_SERVICE_KEY,
+              Authorization: `Bearer ${SUPABASE_SERVICE_KEY}`,
+            },
+          });
+        }
+        const newPortfolio = reorderedPortfolio.filter((_, i) => i !== index);
+        setReorderedPortfolio(newPortfolio);
+        setEditingSplitForm({ ...editingSplitForm, portfolio_images: newPortfolio });
+      } catch (err) {
+        console.error("Failed to delete portfolio item", err);
+      } finally {
+        setDeletingIndex(null);
+      }
+    };
+
+    const handlePortfolioReplace = async (index: number, file: File) => {
+      try {
+        const path = `${Date.now()}-${Math.random().toString(36).slice(2)}.${file.name.split('.').pop()}`;
+        const url = await uploadToSupabase(file, "creator-portfolio", path);
+        if (url) {
+          const newPortfolio = [...reorderedPortfolio];
+          newPortfolio[index] = url;
+          setReorderedPortfolio(newPortfolio);
+          setEditingSplitForm({ ...editingSplitForm, portfolio_images: newPortfolio });
+        }
+      } catch (err) {
+        console.error("Failed to replace portfolio item", err);
+      } finally {
+        setReplacingIndex(null);
+      }
+    };
+
+    const handleDragStart = (e: React.DragEvent, index: number) => {
+      setDragSource(index);
+    };
+
+    const handleDragOver = (e: React.DragEvent) => {
+      e.preventDefault();
+    };
+
+    const handleDrop = (e: React.DragEvent, targetIndex: number) => {
+      e.preventDefault();
+      if (dragSource === null || dragSource === targetIndex) {
+        setDragSource(null);
+        return;
+      }
+      const newPortfolio = [...reorderedPortfolio];
+      const [moved] = newPortfolio.splice(dragSource, 1);
+      newPortfolio.splice(targetIndex, 0, moved);
+      setReorderedPortfolio(newPortfolio);
+      setEditingSplitForm({ ...editingSplitForm, portfolio_images: newPortfolio });
+      setDragSource(null);
+    };
+
+    const isVideo = (url: string) => /\.(mp4|mov|webm|mkv)$/i.test(url);
+
     return (
       <div className="space-y-4">
         <div className="flex items-center justify-between mb-6">
@@ -993,8 +1072,8 @@ function CreatorsContent() {
           </button>
         </div>
 
-        <div className="grid grid-cols-1 lg:grid-cols-2 gap-8">
-          {/* LEFT: Editor Form */}
+        <div style={{ display: "grid", gridTemplateColumns: "45% 55%", gap: "2rem" }}>
+          {/* LEFT: Editor Form (45%) */}
           <div className="bg-card rounded-2xl border border-border p-6 space-y-6 max-h-screen overflow-y-auto">
             <h3 className="font-semibold">Editor</h3>
 
@@ -1153,6 +1232,129 @@ function CreatorsContent() {
               </select>
             </fieldset>
 
+            {/* Portfolio Grid Section */}
+            <fieldset className="space-y-3 pt-2 border-t border-border">
+              <legend className="text-xs font-semibold text-muted-foreground uppercase tracking-wider">Portfolio</legend>
+              {(editingSplitForm.portfolio_images && editingSplitForm.portfolio_images.length > 0) && (
+                <div className="grid grid-cols-3 gap-2 mb-4">
+                  {editingSplitForm.portfolio_images.map((url: string, i: number) => {
+                    const video = isVideo(url);
+                    return (
+                      <div
+                        key={i}
+                        draggable
+                        onDragStart={(e) => {
+                          setDragSource(i);
+                        }}
+                        onDragOver={(e) => e.preventDefault()}
+                        onDrop={(e) => {
+                          e.preventDefault();
+                          if (dragSource === null || dragSource === i) {
+                            setDragSource(null);
+                            return;
+                          }
+                          const newPortfolio = [...(editingSplitForm.portfolio_images || [])];
+                          const [moved] = newPortfolio.splice(dragSource, 1);
+                          newPortfolio.splice(i, 0, moved);
+                          setEditingSplitForm({ ...editingSplitForm, portfolio_images: newPortfolio });
+                          setDragSource(null);
+                        }}
+                        className="relative aspect-square rounded-lg overflow-hidden border-2 border-border group cursor-move hover:border-primary/50 transition-colors"
+                      >
+                        {video ? (
+                          <>
+                            <video src={url} className="w-full h-full object-cover" />
+                            <div className="absolute inset-0 flex items-center justify-center bg-black/30 group-hover:bg-black/40">
+                              <div className="w-8 h-8 flex items-center justify-center rounded-full bg-white/90 text-xs">▶</div>
+                            </div>
+                          </>
+                        ) : (
+                          <img src={url} alt="" className="w-full h-full object-cover" />
+                        )}
+                        <div className="absolute top-1 right-1 flex gap-1 opacity-0 group-hover:opacity-100 transition-opacity">
+                          <label className="p-1 bg-white rounded hover:bg-gray-100 cursor-pointer" title="Replace">
+                            <Upload size={12} />
+                            <input
+                              type="file"
+                              hidden
+                              accept="image/*,video/*"
+                              onChange={async (e) => {
+                                const file = e.target.files?.[0];
+                                if (file) {
+                                  const path = `${Date.now()}-${Math.random().toString(36).slice(2)}.${file.name.split('.').pop()}`;
+                                  const newUrl = await uploadToSupabase(file, "creator-portfolio", path);
+                                  if (newUrl) {
+                                    const newPortfolio = [...(editingSplitForm.portfolio_images || [])];
+                                    newPortfolio[i] = newUrl;
+                                    setEditingSplitForm({ ...editingSplitForm, portfolio_images: newPortfolio });
+                                  }
+                                }
+                              }}
+                            />
+                          </label>
+                          <button
+                            type="button"
+                            onClick={async () => {
+                              const path = url.split('/public/creator-portfolio/')[1];
+                              if (path) {
+                                await fetch(`${SUPABASE_URL}/storage/v1/object/creator-portfolio/${decodeURIComponent(path)}`, {
+                                  method: "DELETE",
+                                  headers: {
+                                    apikey: SUPABASE_SERVICE_KEY,
+                                    Authorization: `Bearer ${SUPABASE_SERVICE_KEY}`,
+                                  },
+                                }).catch(() => {});
+                              }
+                              const newPortfolio = (editingSplitForm.portfolio_images || []).filter((_: string, j: number) => j !== i);
+                              setEditingSplitForm({ ...editingSplitForm, portfolio_images: newPortfolio });
+                            }}
+                            className="p-1 bg-red-500 text-white rounded hover:bg-red-600"
+                            title="Delete"
+                          >
+                            ✕
+                          </button>
+                        </div>
+                      </div>
+                    );
+                  })}
+                </div>
+              )}
+              <label className="flex items-center justify-center w-full p-4 border-2 border-dashed border-border rounded-lg hover:border-foreground/30 cursor-pointer transition-colors">
+                <div className="flex items-center gap-2 text-xs text-muted-foreground">
+                  <Upload size={14} /> Add portfolio items
+                </div>
+                <input
+                  type="file"
+                  accept="image/*,video/*"
+                  multiple
+                  hidden
+                  onChange={async (e) => {
+                    const files = Array.from(e.target.files ?? []);
+                    if (!files.length) return;
+                    const urls = await Promise.all(files.map(file => {
+                      const path = `${Date.now()}-${Math.random().toString(36).slice(2)}.${file.name.split('.').pop()}`;
+                      return uploadToSupabase(file, "creator-portfolio", path);
+                    }));
+                    const newUrls = urls.filter((u) => u !== null) as string[];
+                    const updated = [...(editingSplitForm.portfolio_images || []), ...newUrls];
+                    setEditingSplitForm({ ...editingSplitForm, portfolio_images: updated });
+                  }}
+                />
+              </label>
+            </fieldset>
+
+            {/* Brand Collaborations Section */}
+            <fieldset className="space-y-3 pt-2 border-t border-border">
+              <legend className="text-xs font-semibold text-muted-foreground uppercase tracking-wider">Brand Collaborations</legend>
+              <textarea
+                placeholder="Write a description of brand collaborations and work style…"
+                value={editingSplitForm.brand_collabs_text || ""}
+                onChange={(e) => setEditingSplitForm({ ...editingSplitForm, brand_collabs_text: e.target.value })}
+                rows={4}
+                className="w-full px-3 py-2 border border-border rounded-lg bg-card text-sm resize-none"
+              />
+            </fieldset>
+
             {/* Admin Section */}
             <div className="p-4 bg-accent rounded-lg space-y-4">
               <h3 className="font-semibold text-sm text-foreground">Admin</h3>
@@ -1187,14 +1389,25 @@ function CreatorsContent() {
               </div>
             </div>
 
-            {/* Save Button */}
-            <button
-              onClick={handleSplitSave}
-              disabled={saving || !editingSplitForm.display_name.trim()}
-              className="w-full px-4 py-2 bg-emerald-600 text-white rounded-full hover:bg-emerald-700 disabled:opacity-50 transition-colors text-sm font-medium"
-            >
-              {saving ? "Saving…" : "Save Changes"}
-            </button>
+            {/* Save Buttons */}
+            <div className="flex gap-3">
+              <button
+                onClick={() => {
+                  setEditingSplitId(null);
+                  setEditingSplitForm(null);
+                }}
+                className="flex-1 px-4 py-2 border border-border rounded-full hover:bg-gray-50 transition-colors text-sm font-medium"
+              >
+                Cancel
+              </button>
+              <button
+                onClick={handleSplitSave}
+                disabled={saving || !editingSplitForm.display_name.trim()}
+                className="flex-1 px-4 py-2 bg-emerald-600 text-white rounded-full hover:bg-emerald-700 disabled:opacity-50 transition-colors text-sm font-medium"
+              >
+                {saving ? "Saving…" : "Save & Publish"}
+              </button>
+            </div>
           </div>
 
           {/* RIGHT: Live Preview */}
