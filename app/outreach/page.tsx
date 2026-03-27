@@ -8,11 +8,11 @@ type BrandRecord = {
   id: string;
   company_name: string;
   contact_name: string;
-  email: string;
+  contact_email: string;
   industry: string;
-  pipeline_stage: string;
+  stage: string;
   notes: string;
-  last_contact_at: string | null;
+  last_activity_date: string | null;
   created_at: string;
 };
 
@@ -34,15 +34,15 @@ const SETUP_SQL = `CREATE TABLE IF NOT EXISTS brand_crm (
   contact_name text,
   email text,
   industry text,
-  pipeline_stage text default 'prospect',
+  stage text default 'prospect',
   notes text,
-  last_contact_at timestamptz,
+  last_activity_date timestamptz,
   created_at timestamptz default now()
 );`;
 
 const EMPTY_FORM = {
-  company_name: "", contact_name: "", email: "", industry: "",
-  pipeline_stage: "Prospect", notes: "",
+  company_name: "", contact_name: "", contact_email: "", industry: "",
+  stage: "Prospect", notes: "",
 };
 
 function StagePill({ stage }: { stage: string }) {
@@ -93,7 +93,7 @@ function SlideOver({ open, onClose, initial, onSave }: {
           {[
             { key: "company_name", label: "Company Name", required: true },
             { key: "contact_name", label: "Contact Name" },
-            { key: "email", label: "Email", type: "email" },
+            { key: "contact_email", label: "Email", type: "email" },
             { key: "industry", label: "Industry" },
           ].map(({ key, label, type, required }) => (
             <div key={key}>
@@ -112,8 +112,8 @@ function SlideOver({ open, onClose, initial, onSave }: {
             <label className="text-xs font-medium block mb-1">Pipeline Stage</label>
             <div className="relative">
               <select
-                value={form.pipeline_stage}
-                onChange={e => set("pipeline_stage", e.target.value)}
+                value={form.stage}
+                onChange={e => set("stage", e.target.value)}
                 className="w-full border rounded-lg px-3 py-2 text-sm appearance-none focus:outline-none focus:ring-2 focus:ring-blue-500/30 pr-8"
                 style={{ borderColor: "var(--border)" }}
               >
@@ -229,7 +229,7 @@ function OutreachContent() {
       {records.length > 0 && (
         <div className="grid grid-cols-3 sm:grid-cols-6 gap-3 mb-6">
           {STAGES.map(stage => {
-            const count = records.filter(r => r.pipeline_stage === stage).length;
+            const count = records.filter(r => r.stage === stage).length;
             const colors = STAGE_COLORS[stage];
             return (
               <div key={stage} className="rounded-xl border p-3" style={{ borderColor: "var(--border)" }}>
@@ -267,10 +267,10 @@ function OutreachContent() {
                   >
                     <td className="px-4 py-3 font-medium">{r.company_name || "—"}</td>
                     <td className="px-4 py-3" style={{ color: "var(--muted-foreground)" }}>{r.contact_name || "—"}</td>
-                    <td className="px-4 py-3 text-xs" style={{ color: "var(--muted-foreground)" }}>{r.email || "—"}</td>
+                    <td className="px-4 py-3 text-xs" style={{ color: "var(--muted-foreground)" }}>{r.contact_email || "—"}</td>
                     <td className="px-4 py-3 text-xs" style={{ color: "var(--muted-foreground)" }}>{r.industry || "—"}</td>
-                    <td className="px-4 py-3"><StagePill stage={r.pipeline_stage || "Prospect"} /></td>
-                    <td className="px-4 py-3 text-xs" style={{ color: "var(--muted-foreground)" }}>{fmt(r.last_contact_at)}</td>
+                    <td className="px-4 py-3"><StagePill stage={r.stage || "Prospect"} /></td>
+                    <td className="px-4 py-3 text-xs" style={{ color: "var(--muted-foreground)" }}>{fmt(r.last_activity_date)}</td>
                     <td className="px-4 py-3 text-xs max-w-[200px] truncate" style={{ color: "var(--muted-foreground)" }}>{r.notes || "—"}</td>
                     <td className="px-4 py-3">
                       <div className="flex items-center gap-1">

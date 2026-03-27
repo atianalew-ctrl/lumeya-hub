@@ -1,5 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
 
+export const dynamic = "force-dynamic";
+
 const SUPABASE_URL = "https://xbgdynlutmosupfqafap.supabase.co";
 const SUPABASE_SERVICE_KEY = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InhiZ2R5bmx1dG1vc3VwZnFhZmFwIiwicm9sZSI6InNlcnZpY2Vfcm9sZSIsImlhdCI6MTc3MzUwOTM4NCwiZXhwIjoyMDg5MDg1Mzg0fQ.zfdL0QkL_5nmZeuC-LAsd50-UsAIgqiCsJiDY5rklXs";
 
@@ -12,21 +14,20 @@ const headers = {
 export async function GET() {
   try {
     const res = await fetch(
-      `${SUPABASE_URL}/rest/v1/brand_crm?select=id,company_name,contact_name,email,industry,pipeline_stage,notes,last_contact_at,created_at&order=created_at.desc`,
-      { headers, next: { revalidate: 0 } }
+      `${SUPABASE_URL}/rest/v1/brand_crm?select=*&order=created_at.desc`,
+      { headers, cache: "no-store" }
     );
     if (!res.ok) {
       const text = await res.text();
-      // Table doesn't exist
-      if (text.includes("does not exist") || res.status === 404 || text.includes("relation") ) {
-        return NextResponse.json({ data: [], setup_needed: true });
+      if (text.includes("does not exist") || res.status === 404 || text.includes("relation")) {
+        return NextResponse.json({ data: [], setup_needed: true }, { headers: { "Cache-Control": "no-store" } });
       }
       return NextResponse.json({ error: text }, { status: res.status });
     }
     const data = await res.json();
-    return NextResponse.json({ data });
+    return NextResponse.json({ data }, { headers: { "Cache-Control": "no-store" } });
   } catch (e) {
-    return NextResponse.json({ data: [], setup_needed: true });
+    return NextResponse.json({ data: [], setup_needed: true }, { headers: { "Cache-Control": "no-store" } });
   }
 }
 

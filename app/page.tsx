@@ -3,7 +3,7 @@ import { useState, useEffect } from "react";
 import Link from "next/link";
 import AuthGate from "@/components/AuthGate";
 import AppShell from "@/components/AppShell";
-import { ExternalLink, UserPlus, Megaphone, Users, Globe, Briefcase } from "lucide-react";
+import { ExternalLink, UserPlus, Megaphone, Users, Globe, Briefcase, Map, LayoutDashboard, User } from "lucide-react";
 
 const todos = [
   "Buy lumeya.io domain (~€10 on namecheap.com)",
@@ -88,16 +88,48 @@ function DashboardContent() {
 
   const quickActions = [
     {
-      icon: <UserPlus size={22} />,
-      label: "Add Creator",
-      desc: "Onboard a new creator",
-      href: "/creators",
+      icon: <Map size={22} />,
+      label: "Site Navigator",
+      desc: "All pages by role",
+      href: "/site-map",
       external: false,
       color: "#4a6fa5",
     },
     {
+      icon: <Globe size={22} />,
+      label: "Live Site",
+      desc: "Open as visitor",
+      href: "https://lumeya-connect.vercel.app",
+      external: true,
+      color: "#1a1a1a",
+    },
+    {
+      icon: <LayoutDashboard size={22} />,
+      label: "Brand Dashboard",
+      desc: "Open as brand",
+      href: "https://lumeya-connect.vercel.app/dashboard",
+      external: true,
+      color: "#16a34a",
+    },
+    {
+      icon: <User size={22} />,
+      label: "Creator Dashboard",
+      desc: "Open as creator",
+      href: "https://lumeya-connect.vercel.app/creator-dashboard",
+      external: true,
+      color: "#9333ea",
+    },
+    {
+      icon: <UserPlus size={22} />,
+      label: "Approve Creators",
+      desc: "Pending approvals",
+      href: "/creators",
+      external: false,
+      color: "#ea580c",
+    },
+    {
       icon: <Megaphone size={22} />,
-      label: "View Campaigns",
+      label: "Campaigns",
       desc: "Manage brand campaigns",
       href: "/campaigns",
       external: false,
@@ -105,27 +137,11 @@ function DashboardContent() {
     },
     {
       icon: <Users size={22} />,
-      label: "Manage Waitlist",
-      desc: "See who signed up",
-      href: "/waitlist",
+      label: "Creator Profiles",
+      desc: "Edit & manage creator profiles",
+      href: "/creator-profiles",
       external: false,
-      color: "#3ecf8e",
-    },
-    {
-      icon: <Globe size={22} />,
-      label: "Open Live Site",
-      desc: "lumeya-connect.vercel.app",
-      href: "https://lumeya-connect.vercel.app",
-      external: true,
-      color: "#1a1a1a",
-    },
-    {
-      icon: <Briefcase size={22} />,
-      label: "Post Opportunity",
-      desc: "Create a brand opportunity",
-      href: "/opportunities",
-      external: false,
-      color: "#059669",
+      color: "#2563eb",
     },
   ];
 
@@ -190,7 +206,7 @@ function DashboardContent() {
       {/* Quick Actions */}
       <section>
         <h2 className="text-xs font-semibold uppercase tracking-wider mb-3" style={{ color: "var(--muted-foreground)" }}>Quick Actions</h2>
-        <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-5 gap-3">
+        <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-6 gap-3">
           {quickActions.map((action) => {
             const inner = (
               <div

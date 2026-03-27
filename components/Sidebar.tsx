@@ -1,10 +1,11 @@
 "use client";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
-import { LayoutDashboard, Users, Megaphone, ListChecks, TrendingUp, BookOpen, X, Briefcase, Building2, UserCheck, Film, BarChart2, MessageSquare, Send, UserPlus, Shield } from "lucide-react";
+import { LayoutDashboard, Users, Megaphone, ListChecks, TrendingUp, BookOpen, X, Briefcase, Building2, UserCheck, Film, BarChart2, MessageSquare, Send, UserPlus, Shield, Map } from "lucide-react";
 
 const navItems = [
   { href: "/", label: "Dashboard", icon: LayoutDashboard },
+  { href: "/site-map", label: "Site Navigator", icon: Map },
   { href: "/creators", label: "Creators", icon: Users },
   { href: "/campaigns", label: "Campaigns", icon: Megaphone },
   { href: "/opportunities", label: "Opportunities", icon: Briefcase },

@@ -28,6 +28,9 @@ interface Creator {
   rates: string | null;
   creator_type: string | null;
   available_for_remote: boolean | null;
+  portfolio_images: string[] | null;
+  video_url: string | null;
+  video_urls: string[] | null;
 }
 
 type FilterTab = "all" | "live" | "pending" | "hidden";
@@ -49,11 +52,15 @@ const emptyForm = {
   tiktok_followers: "",
   engagement_rate: "",
   rates: "",
+  tags: "",
+  content_types: "",
   creator_type: "",
   availability: "available",
   available_for_remote: false,
   approved: false,
   avatar_url: "",
+  is_verified: false,
+  is_trending: false,
 };
 
 function fmtFollowers(n: number | null): string {
@@ -142,10 +149,12 @@ function Toggle({ value, onChange }: { value: boolean; onChange: (v: boolean) =>
 interface SlideOverProps {
   open: boolean;
   onClose: () => void;
-  onSave: (data: typeof emptyForm) => Promise<void>;
+  onSave: (data: typeof emptyForm, portfolioUrls: string[], videoUrls: string[]) => Promise<void>;
   initial?: typeof emptyForm | null;
   title: string;
   saving: boolean;
+  initialPortfolioImages?: string[];
+  initialVideoUrls?: string[];
 }
 
 const SUPABASE_URL = "https://xbgdynlutmosupfqafap.supabase.co";
@@ -165,22 +174,27 @@ async function uploadToSupabase(file: File, bucket: string, path: string): Promi
   return `${SUPABASE_URL}/storage/v1/object/public/${bucket}/${path}`;
 }
 
-function SlideOver({ open, onClose, onSave, initial, title, saving }: SlideOverProps) {
+function SlideOver({ open, onClose, onSave, initial, title, saving, initialPortfolioImages, initialVideoUrls }: SlideOverProps) {
   const [form, setForm] = useState(emptyForm);
   const [avatarPreview, setAvatarPreview] = useState<string | null>(null);
   const [avatarUploading, setAvatarUploading] = useState(false);
   const [portfolioPreviews, setPortfolioPreviews] = useState<string[]>([]);
   const [portfolioUploading, setPortfolioUploading] = useState(false);
+  const [portfolioUrls, setPortfolioUrls] = useState<string[]>([]);
+  const [videoUrls, setVideoUrls] = useState<string[]>([]);
+  const [videoUploading, setVideoUploading] = useState(false);
   const firstInput = useRef<HTMLInputElement>(null);
 
   useEffect(() => {
     if (open) {
       setForm(initial ?? emptyForm);
       setAvatarPreview(initial?.avatar_url ?? null);
-      setPortfolioPreviews([]);
+      setPortfolioUrls(initialPortfolioImages ?? []);
+      setPortfolioPreviews(initialPortfolioImages ?? []);
+      setVideoUrls(initialVideoUrls ?? []);
       setTimeout(() => firstInput.current?.focus(), 50);
     }
-  }, [open, initial]);
+  }, [open, initial, initialPortfolioImages, initialVideoUrls]);
 
   useEffect(() => {
     const handler = (e: KeyboardEvent) => { if (e.key === "Escape") onClose(); };
@@ -208,12 +222,24 @@ function SlideOver({ open, onClose, onSave, initial, title, saving }: SlideOverP
     setPortfolioUploading(true);
     const newPreviews = files.map(f => URL.createObjectURL(f));
     setPortfolioPreviews(prev => [...prev, ...newPreviews]);
-    // Upload each file — could store URLs in a separate field if needed
     for (const file of files) {
-      const path = `${Date.now()}-${file.name.replace(/[^a-z0-9._-]/gi, "_")}`;
-      await uploadToSupabase(file, "creator-portfolio", path);
+      const path = `${Date.now()}-${Math.random().toString(36).slice(2)}.${file.name.split('.').pop()}`;
+      const url = await uploadToSupabase(file, "creator-portfolio", path);
+      if (url) setPortfolioUrls(prev => [...prev, url]);
     }
     setPortfolioUploading(false);
+  };
+
+  const handleVideoFiles = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    const files = Array.from(e.target.files ?? []);
+    if (!files.length) return;
+    setVideoUploading(true);
+    for (const file of files) {
+      const path = `${Date.now()}-${Math.random().toString(36).slice(2)}.${file.name.split('.').pop()}`;
+      const url = await uploadToSupabase(file, "creator-videos", path);
+      if (url) setVideoUrls(prev => [...prev, url]);
+    }
+    setVideoUploading(false);
   };
 
   const labelStyle = "block text-xs font-medium mb-1";
@@ -332,6 +358,22 @@ function SlideOver({ open, onClose, onSave, initial, title, saving }: SlideOverP
             </div>
           </div>
 
+          {/* Tags */}
+          <div>
+            <label className={labelStyle} style={{ color: "#374151" }}>Tags</label>
+            <input value={form.tags} onChange={(e) => set("tags", e.target.value)}
+              placeholder="Beauty, Lifestyle, Fashion (comma separated)"
+              className={inputStyle} style={inputVars} />
+          </div>
+
+          {/* Content Types */}
+          <div>
+            <label className={labelStyle} style={{ color: "#374151" }}>Content Types</label>
+            <input value={form.content_types} onChange={(e) => set("content_types", e.target.value)}
+              placeholder="UGC Videos, Product Reviews, Tutorials"
+              className={inputStyle} style={inputVars} />
+          </div>
+
           {/* Creator Type + Availability */}
           <div className="grid grid-cols-2 gap-3">
             <div>
@@ -379,7 +421,7 @@ function SlideOver({ open, onClose, onSave, initial, title, saving }: SlideOverP
             </div>
           </div>
 
-          {/* Portfolio Photos/Videos */}
+          {/* Portfolio Photos */}
           <div>
             <label className={labelStyle} style={{ color: "#374151" }}>Portfolio Photos / Videos</label>
             <label className="cursor-pointer block">
@@ -400,6 +442,32 @@ function SlideOver({ open, onClose, onSave, initial, title, saving }: SlideOverP
             )}
           </div>
 
+          {/* Video Upload */}
+          <div>
+            <label className={labelStyle} style={{ color: "#374151" }}>Videos (UGC Reel)</label>
+            <label className="cursor-pointer block">
+              <div className="w-full rounded-xl border-2 border-dashed flex flex-col items-center justify-center gap-2 py-5 transition-colors hover:opacity-80"
+                style={{ borderColor: "var(--border)", background: "var(--muted)", color: "var(--muted-foreground)" }}>
+                <Upload size={18} />
+                <span className="text-xs">{videoUploading ? "Uploading…" : "Upload videos (MP4 preferred)"}</span>
+                <span className="text-[10px]" style={{ color: "var(--muted-foreground)" }}>MOV, MP4 — select multiple</span>
+              </div>
+              <input type="file" accept="video/*" multiple className="hidden" onChange={handleVideoFiles} disabled={videoUploading} />
+            </label>
+            {videoUrls.length > 0 && (
+              <div className="mt-2 space-y-1">
+                {videoUrls.map((url, i) => (
+                  <div key={i} className="flex items-center justify-between text-xs px-3 py-2 rounded-lg"
+                    style={{ background: "var(--muted)", color: "var(--muted-foreground)" }}>
+                    <span className="truncate">Video {i + 1} ✓ uploaded</span>
+                    <button type="button" onClick={() => setVideoUrls(prev => prev.filter((_, j) => j !== i))}
+                      className="ml-2 hover:text-red-500 transition-colors">✕</button>
+                  </div>
+                ))}
+              </div>
+            )}
+          </div>
+
           {/* Toggles */}
           <div className="space-y-3 pt-1">
             <div className="flex items-center justify-between">
@@ -409,6 +477,14 @@ function SlideOver({ open, onClose, onSave, initial, title, saving }: SlideOverP
             <div className="flex items-center justify-between">
               <span className="text-sm font-medium" style={{ color: "#374151" }}>Approved / Live</span>
               <Toggle value={form.approved} onChange={(v) => set("approved", v)} />
+            </div>
+            <div className="flex items-center justify-between">
+              <span className="text-sm font-medium" style={{ color: "#374151" }}>Verified Badge ✓</span>
+              <Toggle value={Boolean(form.is_verified)} onChange={(v) => set("is_verified", v)} />
+            </div>
+            <div className="flex items-center justify-between">
+              <span className="text-sm font-medium" style={{ color: "#374151" }}>Trending 🔥</span>
+              <Toggle value={Boolean(form.is_trending)} onChange={(v) => set("is_trending", v)} />
             </div>
           </div>
         </div>
@@ -420,7 +496,7 @@ function SlideOver({ open, onClose, onSave, initial, title, saving }: SlideOverP
             Cancel
           </button>
           <button
-            onClick={() => onSave(form)}
+            onClick={() => onSave(form, portfolioUrls, videoUrls)}
             disabled={saving || !form.display_name.trim()}
             className="flex-1 px-4 py-2 rounded-lg text-sm font-medium text-white transition-opacity hover:opacity-90 disabled:opacity-50 flex items-center justify-center gap-2"
             style={{ background: "#4a6fa5" }}>
@@ -479,11 +555,15 @@ function toFormValues(creator: Creator): typeof emptyForm {
     tiktok_followers: creator.tiktok_followers != null ? String(creator.tiktok_followers) : "",
     engagement_rate: creator.engagement_rate != null ? String(creator.engagement_rate) : "",
     rates: creator.rates ?? "",
+    tags: (creator.tags ?? []).join(", "),
+    content_types: (creator.content_types ?? []).join(", "),
     creator_type: creator.creator_type ?? "",
     availability: creator.availability ?? "available",
     available_for_remote: creator.available_for_remote === true,
     avatar_url: creator.avatar_url ?? "",
     approved: creator.approved === true,
+    is_verified: creator.is_verified === true,
+    is_trending: creator.is_trending === true,
   };
 }
 
@@ -499,6 +579,8 @@ function CreatorsContent() {
   const [slideTitle, setSlideTitle] = useState("Add Creator");
   const [editingId, setEditingId] = useState<string | null>(null);
   const [slideInitial, setSlideInitial] = useState<typeof emptyForm | null>(null);
+  const [slidePortfolioImages, setSlidePortfolioImages] = useState<string[]>([]);
+  const [slideVideoUrls, setSlideVideoUrls] = useState<string[]>([]);
   const [saving, setSaving] = useState(false);
 
   const [deleteTarget, setDeleteTarget] = useState<Creator | null>(null);
@@ -527,6 +609,8 @@ function CreatorsContent() {
   const openAdd = () => {
     setEditingId(null);
     setSlideInitial(null);
+    setSlidePortfolioImages([]);
+    setSlideVideoUrls([]);
     setSlideTitle("Add Creator");
     setSlideOpen(true);
   };
@@ -534,11 +618,13 @@ function CreatorsContent() {
   const openEdit = (creator: Creator) => {
     setEditingId(creator.id);
     setSlideInitial(toFormValues(creator));
+    setSlidePortfolioImages(creator.portfolio_images ?? []);
+    setSlideVideoUrls(creator.video_urls ?? (creator.video_url ? [creator.video_url] : []));
     setSlideTitle("Edit Creator");
     setSlideOpen(true);
   };
 
-  const handleSave = async (form: typeof emptyForm) => {
+  const handleSave = async (form: typeof emptyForm, portfolioUrls: string[], videoUrls: string[]) => {
     setSaving(true);
     try {
       const payload: Record<string, unknown> = {
@@ -559,6 +645,12 @@ function CreatorsContent() {
         available_for_remote: form.available_for_remote,
         avatar_url: form.avatar_url || null,
         approved: form.approved,
+        tags: form.tags ? form.tags.split(",").map((t: string) => t.trim()).filter(Boolean) : [],
+        content_types: form.content_types ? form.content_types.split(",").map((t: string) => t.trim()).filter(Boolean) : [],
+        is_verified: form.is_verified,
+        is_trending: form.is_trending,
+        ...(portfolioUrls.length > 0 ? { portfolio_images: portfolioUrls } : {}),
+        ...(videoUrls.length > 0 ? { video_urls: videoUrls, video_url: videoUrls[0] } : {}),
       };
 
       if (editingId) {
@@ -583,6 +675,32 @@ function CreatorsContent() {
     }
   };
 
+  const sendApprovalNotification = async (creator: Creator) => {
+    const SUPABASE_URL = "https://xbgdynlutmosupfqafap.supabase.co";
+    const SVC_KEY = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InhiZ2R5bmx1dG1vc3VwZnFhZmFwIiwicm9sZSI6InNlcnZpY2Vfcm9sZSIsImlhdCI6MTc3MzUwOTM4NCwiZXhwIjoyMDg5MDg1Mzg0fQ.zfdL0QkL_5nmZeuC-LAsd50-UsAIgqiCsJiDY5rklXs";
+    try {
+      await fetch(`${SUPABASE_URL}/rest/v1/notifications`, {
+        method: "POST",
+        headers: {
+          apikey: SVC_KEY,
+          Authorization: `Bearer ${SVC_KEY}`,
+          "Content-Type": "application/json",
+          Prefer: "return=minimal",
+        },
+        body: JSON.stringify({
+          user_id: creator.id,
+          type: "system",
+          title: "Your profile is live! 🎉",
+          body: "Congrats! Your Lumeya creator profile has been approved. Brands can now find and contact you.",
+          link: "/creator-dashboard",
+          read: false,
+        }),
+      });
+    } catch {
+      // Best-effort — don't crash approve flow
+    }
+  };
+
   const handleToggle = async (creator: Creator) => {
     const newApproved = !(creator.approved === true);
     await fetch("/api/creators", {
@@ -590,6 +708,9 @@ function CreatorsContent() {
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify({ id: creator.id, approved: newApproved }),
     });
+    if (newApproved) {
+      await sendApprovalNotification(creator);
+    }
     fetchCreators();
   };
 
@@ -918,6 +1039,8 @@ function CreatorsContent() {
         initial={slideInitial}
         title={slideTitle}
         saving={saving}
+        initialPortfolioImages={slidePortfolioImages}
+        initialVideoUrls={slideVideoUrls}
       />
 
       <DeleteDialog
