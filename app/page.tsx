@@ -135,14 +135,6 @@ function DashboardContent() {
       external: false,
       color: "#6b5fa5",
     },
-    {
-      icon: <Users size={22} />,
-      label: "Creator Profiles",
-      desc: "Edit & manage creator profiles",
-      href: "/creator-profiles",
-      external: false,
-      color: "#2563eb",
-    },
   ];
 
   return (

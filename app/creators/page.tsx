@@ -35,6 +35,89 @@ interface Creator {
 
 type FilterTab = "all" | "live" | "pending" | "hidden";
 
+const STATIC_CREATORS = [
+  {
+    display_name: "Ronja Aaslund",
+    instagram: "@ronjaaaslund",
+    location: "Stockholm, SE",
+    tagline: "UGC Creator",
+    bio: "Scandinavian minimalistic vibe, specialised in lifestyle and beauty brands. Known for clean, editorial UGC that converts.",
+    avatar_url: "https://images.unsplash.com/photo-1494790108377-be9c29b29330?w=400&q=80",
+    followers: 42800,
+    engagement_rate: 5.2,
+  },
+  {
+    display_name: "Nikoline Amelia",
+    instagram: "@nikolineamelia",
+    location: "France",
+    tagline: "UGC Creator",
+    bio: "Fashion and lifestyle content creator. Creates authentic, relatable videos for sustainable brands.",
+    avatar_url: "https://images.unsplash.com/photo-1507003211169-0a1dd7228f2d?w=400&q=80",
+    followers: 38900,
+    engagement_rate: 4.8,
+  },
+  {
+    display_name: "Sussie Agger",
+    instagram: "@sussieagger",
+    location: "Copenhagen, Denmark",
+    tagline: "Content Creator",
+    bio: "Copenhagen-based creator and social media strategist. Every piece of content I make is designed to stop the scroll and drive action.",
+    avatar_url: "https://images.unsplash.com/photo-1438761681033-6461ffad8d80?w=400&q=80",
+    followers: 89000,
+    engagement_rate: 6.1,
+  },
+  {
+    display_name: "Amalie Asheim",
+    instagram: "@amalieash",
+    location: "Bali / Dubai",
+    tagline: "UGC Creator",
+    bio: "Luxury lifestyle creator. Specializes in high-end beauty, fashion, and wellness content.",
+    avatar_url: "https://images.unsplash.com/photo-1534528741775-53994a69daeb?w=400&q=80",
+    followers: 124000,
+    engagement_rate: 7.2,
+  },
+  {
+    display_name: "Nella Ryglova",
+    instagram: "@nellaryglova",
+    location: "Bali / Dubai",
+    tagline: "UGC Creator",
+    bio: "Minimalist creator specialised in voiceovers, food and fashion. My content feels effortless because I obsess over every detail.",
+    avatar_url: "https://images.unsplash.com/photo-1517849845537-1d51a20414de?w=400&q=80",
+    followers: 67500,
+    engagement_rate: 5.9,
+  },
+  {
+    display_name: "Celina Beck",
+    instagram: "@celinabeck",
+    location: "Austin, TX",
+    tagline: "UGC Creator",
+    bio: "Beauty and lifestyle creator. Known for authentic, high-converting UGC content.",
+    avatar_url: "https://images.unsplash.com/photo-1519046904884-53103b34b206?w=400&q=80",
+    followers: 54300,
+    engagement_rate: 5.5,
+  },
+  {
+    display_name: "Daniel Voss",
+    instagram: "@danielvoss",
+    location: "Berlin, Germany",
+    tagline: "Creator",
+    bio: "Tech and lifestyle creator focusing on product reviews and tutorials.",
+    avatar_url: "https://images.unsplash.com/photo-1507003211169-0a1dd7228f2d?w=400&q=80",
+    followers: 45600,
+    engagement_rate: 4.9,
+  },
+  {
+    display_name: "Sakura Tanaka",
+    instagram: "@sakura.tanaka",
+    location: "Tokyo, Japan",
+    tagline: "UGC Creator",
+    bio: "Asian beauty and fashion specialist. Creates premium UGC for luxury brands.",
+    avatar_url: "https://images.unsplash.com/photo-1534528741775-53994a69daeb?w=400&q=80",
+    followers: 78900,
+    engagement_rate: 6.3,
+  },
+];
+
 const REGIONS = ["Denmark", "Norway", "Sweden", "Finland", "Iceland", "International", "Middle East", "Other"];
 const CREATOR_TYPES = ["ugc", "influencer", "both"];
 const AVAILABILITIES = ["available", "busy", "unavailable"];
@@ -590,6 +673,12 @@ function CreatorsContent() {
   const [bulkApproving, setBulkApproving] = useState(false);
   const [bulkToast, setBulkToast] = useState<string | null>(null);
 
+  // Split-view editor mode
+  const [editingSplitId, setEditingSplitId] = useState<string | null>(null);
+  const [editingSplitForm, setEditingSplitForm] = useState<any>(null);
+  const [lastSplitRefresh, setLastSplitRefresh] = useState(0);
+  const [importingStatic, setImportingStatic] = useState(false);
+
   const fetchCreators = useCallback(async () => {
     setLoading(true);
     try {
@@ -606,6 +695,28 @@ function CreatorsContent() {
 
   useEffect(() => { fetchCreators(); }, [fetchCreators]);
 
+  const handleImportStatic = async () => {
+    if (!window.confirm("Import 8 static creators to Supabase?")) return;
+    setImportingStatic(true);
+    try {
+      const res = await fetch("/api/creators", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ _bulk: STATIC_CREATORS }),
+      });
+      if (res.ok) {
+        alert("✓ 8 creators imported!");
+        await fetchCreators();
+      } else {
+        alert("Error importing creators");
+      }
+    } catch (err) {
+      alert("Error: " + (err as any).message);
+    } finally {
+      setImportingStatic(false);
+    }
+  };
+
   const openAdd = () => {
     setEditingId(null);
     setSlideInitial(null);
@@ -616,6 +727,12 @@ function CreatorsContent() {
   };
 
   const openEdit = (creator: Creator) => {
+    // Open split-view editor instead of slide-over
+    setEditingSplitId(creator.id);
+    setEditingSplitForm(toFormValues(creator));
+  };
+
+  const openEditSlideOver = (creator: Creator) => {
     setEditingId(creator.id);
     setSlideInitial(toFormValues(creator));
     setSlidePortfolioImages(creator.portfolio_images ?? []);
@@ -813,10 +930,307 @@ function CreatorsContent() {
     });
   };
 
+  const handleSplitSave = async () => {
+    if (!editingSplitId || !editingSplitForm) return;
+    setSaving(true);
+    try {
+      const payload: Record<string, unknown> = {
+        display_name: editingSplitForm.display_name.trim(),
+        bio: editingSplitForm.bio || null,
+        tagline: editingSplitForm.tagline || null,
+        location: editingSplitForm.location || null,
+        region: editingSplitForm.region || null,
+        instagram: editingSplitForm.instagram || null,
+        tiktok: editingSplitForm.tiktok || null,
+        followers: editingSplitForm.followers ? Number(editingSplitForm.followers) : null,
+        engagement_rate: editingSplitForm.engagement_rate ? Number(editingSplitForm.engagement_rate) : null,
+        rates: editingSplitForm.rates || null,
+        creator_type: editingSplitForm.creator_type || null,
+        availability: editingSplitForm.availability || null,
+        available_for_remote: editingSplitForm.available_for_remote,
+        avatar_url: editingSplitForm.avatar_url || null,
+        approved: editingSplitForm.approved,
+        tags: editingSplitForm.tags ? editingSplitForm.tags.split(",").map((t: string) => t.trim()).filter(Boolean) : [],
+        content_types: editingSplitForm.content_types ? editingSplitForm.content_types.split(",").map((t: string) => t.trim()).filter(Boolean) : [],
+        is_verified: editingSplitForm.is_verified,
+        is_trending: editingSplitForm.is_trending,
+      };
+
+      await fetch("/api/creators", {
+        method: "PATCH",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ id: editingSplitId, ...payload }),
+      });
+      setLastSplitRefresh(Date.now());
+      await fetchCreators();
+      alert("✓ Creator saved!");
+    } catch {
+      alert("Failed to save creator");
+    } finally {
+      setSaving(false);
+    }
+  };
+
   const tableHeaders = [
     "checkbox", "", "Name / Tagline", "Region", "Instagram", "TikTok",
     "IG Followers", "ER%", "Type", "Availability", "Badges", "Status", "Created", "Actions"
   ];
+
+  // Split-view editor mode
+  if (editingSplitId && editingSplitForm) {
+    const creator = creators.find(c => c.id === editingSplitId);
+    return (
+      <div className="space-y-4">
+        <div className="flex items-center justify-between mb-6">
+          <h2 className="text-xl font-semibold">Edit Creator: {editingSplitForm.display_name || "New"}</h2>
+          <button
+            onClick={() => {
+              setEditingSplitId(null);
+              setEditingSplitForm(null);
+            }}
+            className="text-sm text-muted-foreground hover:text-foreground">
+            ← Back to list
+          </button>
+        </div>
+
+        <div className="grid grid-cols-1 lg:grid-cols-2 gap-8">
+          {/* LEFT: Editor Form */}
+          <div className="bg-card rounded-2xl border border-border p-6 space-y-6 max-h-screen overflow-y-auto">
+            <h3 className="font-semibold">Editor</h3>
+
+            {/* Creator Type Toggle */}
+            <div>
+              <label className="block text-xs font-semibold text-muted-foreground uppercase tracking-wider mb-2">Type</label>
+              <div className="flex gap-2">
+                {["UGC Creator", "Influencer", "Both"].map((type) => (
+                  <button
+                    key={type}
+                    onClick={() => setEditingSplitForm({ ...editingSplitForm, creator_type: type.toLowerCase() })}
+                    className={`px-4 py-1.5 rounded-full text-xs font-medium transition-all ${
+                      (editingSplitForm.creator_type === type.toLowerCase() || editingSplitForm.creator_type === type)
+                        ? "bg-slate-800 text-white"
+                        : "border border-border hover:border-foreground/30"
+                    }`}
+                  >
+                    {type}
+                  </button>
+                ))}
+              </div>
+            </div>
+
+            {/* Profile Photo Upload */}
+            <div>
+              <label className="block text-xs font-semibold text-muted-foreground uppercase tracking-wider mb-2">Photo</label>
+              {editingSplitForm.avatar_url && (
+                <img src={editingSplitForm.avatar_url} alt="avatar" className="w-16 h-16 rounded-full object-cover mb-2" />
+              )}
+              <label className="flex items-center justify-center w-full p-4 border-2 border-dashed border-border rounded-lg hover:border-foreground/30 cursor-pointer transition-colors">
+                <div className="flex items-center gap-2 text-xs text-muted-foreground">
+                  <Upload size={14} /> Choose image
+                </div>
+                <input
+                  type="file"
+                  accept="image/*"
+                  hidden
+                  onChange={(e) => {
+                    const file = e.target.files?.[0];
+                    if (file) {
+                      const reader = new FileReader();
+                      reader.onload = (ev) => {
+                        setEditingSplitForm({ ...editingSplitForm, avatar_url: ev.target?.result });
+                      };
+                      reader.readAsDataURL(file);
+                    }
+                  }}
+                />
+              </label>
+            </div>
+
+            {/* Basic Fields */}
+            <fieldset className="space-y-3">
+              <legend className="text-xs font-semibold text-muted-foreground uppercase tracking-wider">Basic</legend>
+              <input
+                type="text"
+                placeholder="Name"
+                value={editingSplitForm.display_name || ""}
+                onChange={(e) => setEditingSplitForm({ ...editingSplitForm, display_name: e.target.value })}
+                className="w-full px-3 py-2 border border-border rounded-lg bg-card text-sm"
+              />
+              <input
+                type="text"
+                placeholder="Tagline (e.g., UGC Creator)"
+                value={editingSplitForm.tagline || ""}
+                onChange={(e) => setEditingSplitForm({ ...editingSplitForm, tagline: e.target.value })}
+                className="w-full px-3 py-2 border border-border rounded-lg bg-card text-sm"
+              />
+              <textarea
+                placeholder="Bio"
+                value={editingSplitForm.bio || ""}
+                onChange={(e) => setEditingSplitForm({ ...editingSplitForm, bio: e.target.value })}
+                rows={3}
+                className="w-full px-3 py-2 border border-border rounded-lg bg-card text-sm resize-none"
+              />
+            </fieldset>
+
+            {/* Location */}
+            <input
+              type="text"
+              placeholder="Location (City, Country)"
+              value={editingSplitForm.location || ""}
+              onChange={(e) => setEditingSplitForm({ ...editingSplitForm, location: e.target.value })}
+              className="w-full px-3 py-2 border border-border rounded-lg bg-card text-sm"
+            />
+
+            {/* Content & Tags */}
+            <fieldset className="space-y-3">
+              <legend className="text-xs font-semibold text-muted-foreground uppercase tracking-wider">Content</legend>
+              <input
+                type="text"
+                placeholder="Content types (comma-separated: UGC, Reels, TikTok)"
+                value={Array.isArray(editingSplitForm.content_types) ? editingSplitForm.content_types.join(", ") : ""}
+                onChange={(e) =>
+                  setEditingSplitForm({ ...editingSplitForm, content_types: e.target.value.split(",").map((s) => s.trim()).filter(Boolean) })
+                }
+                className="w-full px-3 py-2 border border-border rounded-lg bg-card text-sm"
+              />
+              <input
+                type="text"
+                placeholder="Niche tags (comma-separated: Lifestyle, Beauty, Minimal)"
+                value={Array.isArray(editingSplitForm.tags) ? editingSplitForm.tags.join(", ") : ""}
+                onChange={(e) =>
+                  setEditingSplitForm({ ...editingSplitForm, tags: e.target.value.split(",").map((s) => s.trim()).filter(Boolean) })
+                }
+                className="w-full px-3 py-2 border border-border rounded-lg bg-card text-sm"
+              />
+            </fieldset>
+
+            {/* Social */}
+            <fieldset className="space-y-3">
+              <legend className="text-xs font-semibold text-muted-foreground uppercase tracking-wider">Social</legend>
+              <input
+                type="text"
+                placeholder="Instagram (@username)"
+                value={editingSplitForm.instagram || ""}
+                onChange={(e) => setEditingSplitForm({ ...editingSplitForm, instagram: e.target.value })}
+                className="w-full px-3 py-2 border border-border rounded-lg bg-card text-sm"
+              />
+              <div className="grid grid-cols-2 gap-3">
+                <input
+                  type="number"
+                  placeholder="Followers"
+                  value={editingSplitForm.followers || ""}
+                  onChange={(e) => setEditingSplitForm({ ...editingSplitForm, followers: parseInt(e.target.value) || 0 })}
+                  className="w-full px-3 py-2 border border-border rounded-lg bg-card text-sm"
+                />
+                <input
+                  type="number"
+                  step="0.1"
+                  placeholder="Engagement %"
+                  value={editingSplitForm.engagement_rate || ""}
+                  onChange={(e) => setEditingSplitForm({ ...editingSplitForm, engagement_rate: parseFloat(e.target.value) || 0 })}
+                  className="w-full px-3 py-2 border border-border rounded-lg bg-card text-sm"
+                />
+              </div>
+            </fieldset>
+
+            {/* Professional */}
+            <fieldset className="space-y-3">
+              <legend className="text-xs font-semibold text-muted-foreground uppercase tracking-wider">Professional</legend>
+              <input
+                type="text"
+                placeholder="Rate card (€150-300/video)"
+                value={editingSplitForm.rates || ""}
+                onChange={(e) => setEditingSplitForm({ ...editingSplitForm, rates: e.target.value })}
+                className="w-full px-3 py-2 border border-border rounded-lg bg-card text-sm"
+              />
+              <select
+                value={editingSplitForm.availability || "available"}
+                onChange={(e) => setEditingSplitForm({ ...editingSplitForm, availability: e.target.value })}
+                className="w-full px-3 py-2 border border-border rounded-lg bg-card text-sm">
+                <option value="available">Available</option>
+                <option value="busy">Busy</option>
+                <option value="unavailable">Unavailable</option>
+              </select>
+            </fieldset>
+
+            {/* Admin Section */}
+            <div className="p-4 bg-accent rounded-lg space-y-4">
+              <h3 className="font-semibold text-sm text-foreground">Admin</h3>
+              <div className="space-y-2">
+                <label className="flex items-center gap-2 cursor-pointer">
+                  <input
+                    type="checkbox"
+                    checked={editingSplitForm.approved === true}
+                    onChange={(e) => setEditingSplitForm({ ...editingSplitForm, approved: e.target.checked })}
+                    className="rounded"
+                  />
+                  <span className="text-sm">Approved / Live</span>
+                </label>
+                <label className="flex items-center gap-2 cursor-pointer">
+                  <input
+                    type="checkbox"
+                    checked={editingSplitForm.is_verified === true}
+                    onChange={(e) => setEditingSplitForm({ ...editingSplitForm, is_verified: e.target.checked })}
+                    className="rounded"
+                  />
+                  <span className="text-sm">Verified ✓</span>
+                </label>
+                <label className="flex items-center gap-2 cursor-pointer">
+                  <input
+                    type="checkbox"
+                    checked={editingSplitForm.is_trending === true}
+                    onChange={(e) => setEditingSplitForm({ ...editingSplitForm, is_trending: e.target.checked })}
+                    className="rounded"
+                  />
+                  <span className="text-sm">Trending 🔥</span>
+                </label>
+              </div>
+            </div>
+
+            {/* Save Button */}
+            <button
+              onClick={handleSplitSave}
+              disabled={saving || !editingSplitForm.display_name.trim()}
+              className="w-full px-4 py-2 bg-emerald-600 text-white rounded-full hover:bg-emerald-700 disabled:opacity-50 transition-colors text-sm font-medium"
+            >
+              {saving ? "Saving…" : "Save Changes"}
+            </button>
+          </div>
+
+          {/* RIGHT: Live Preview */}
+          <div className="bg-card rounded-2xl border border-border p-6 sticky top-8 max-h-screen overflow-hidden flex flex-col">
+            <div className="flex items-center justify-between mb-6">
+              <h3 className="font-semibold">Live Preview</h3>
+              {editingSplitId && (
+                <a
+                  href={`https://lumeya-connect.vercel.app/creators/${editingSplitId}`}
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className="text-xs text-primary hover:underline">
+                  ↗ Open
+                </a>
+              )}
+            </div>
+
+            {editingSplitId ? (
+              <iframe
+                key={`${editingSplitId}-${lastSplitRefresh}`}
+                src={`https://lumeya-connect.vercel.app/creators/${editingSplitId}?t=${lastSplitRefresh}`}
+                className="flex-1 w-full rounded-xl border border-border"
+                title="Creator Profile Preview"
+              />
+            ) : (
+              <div className="flex-1 flex items-center justify-center text-center">
+                <div>
+                  <p className="text-muted-foreground text-sm">Loading…</p>
+                </div>
+              </div>
+            )}
+          </div>
+        </div>
+      </div>
+    );
+  }
 
   return (
     <div className="space-y-4 max-w-full">
@@ -843,7 +1257,14 @@ function CreatorsContent() {
             </div>
           ))}
         </div>
-        <div className="ml-auto flex items-center gap-2">
+        <div className="ml-auto flex items-center gap-2 flex-wrap">
+          <button
+            onClick={handleImportStatic}
+            disabled={importingStatic}
+            className="flex items-center gap-2 px-4 py-2 rounded-lg text-sm font-medium border border-border hover:opacity-80 disabled:opacity-50 transition-opacity"
+            style={{ background: "var(--card-bg)", color: "var(--foreground)" }}>
+            {importingStatic ? "Importing…" : "Import 8 Creators"}
+          </button>
           {selectedIds.size > 0 && (
             <button
               onClick={handleBulkApprove}
