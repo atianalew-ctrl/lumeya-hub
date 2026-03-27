@@ -461,11 +461,13 @@ function SlideOver({ open, onClose, onSave, initial, title, saving, initialPortf
                 <button
                   key={type}
                   onClick={() => {
-                    const current = Array.isArray(form.content_types) ? form.content_types : (form.content_types ? form.content_types.split(",").map(t => t.trim()) : []);
+                    const current = form.content_types && typeof form.content_types === 'string'
+                      ? form.content_types.split(",").map(t => t.trim())
+                      : [];
                     const updated = current.includes(type)
                       ? current.filter(t => t !== type)
                       : [...current, type];
-                    set("content_types", updated);
+                    set("content_types", updated.join(", "));
                   }}
                   className={`px-4 py-2 rounded-full text-sm font-medium transition-all border ${
                     (Array.isArray(form.content_types) ? form.content_types : (form.content_types ? form.content_types.split(",").map(t => t.trim()) : [])).includes(type)
@@ -986,6 +988,7 @@ function CreatorsContent() {
         approved: editingSplitForm.approved,
         tags: editingSplitForm.tags ? editingSplitForm.tags.split(",").map((t: string) => t.trim()).filter(Boolean) : [],
         content_types: editingSplitForm.content_types ? editingSplitForm.content_types.split(",").map((t: string) => t.trim()).filter(Boolean) : [],
+        languages: editingSplitForm.languages ? editingSplitForm.languages.split(",").map((t: string) => t.trim()).filter(Boolean) : [],
         is_verified: editingSplitForm.is_verified,
         is_trending: editingSplitForm.is_trending,
         brand_collabs_text: editingSplitForm.brand_collabs_text || null,
