@@ -32,6 +32,7 @@ interface Creator {
   video_url: string | null;
   video_urls: string[] | null;
   brand_collabs_text: string | null;
+  country?: string | null;
 }
 
 type FilterTab = "all" | "live" | "pending" | "hidden";
@@ -138,6 +139,7 @@ const emptyForm = {
   rates: "",
   tags: "",
   content_types: "",
+  languages: "",
   creator_type: "",
   availability: "available",
   available_for_remote: false,
@@ -454,8 +456,34 @@ function SlideOver({ open, onClose, onSave, initial, title, saving, initialPortf
           {/* Content Types */}
           <div>
             <label className={labelStyle} style={{ color: "#374151" }}>Content Types</label>
-            <input value={form.content_types} onChange={(e) => set("content_types", e.target.value)}
-              placeholder="UGC Videos, Product Reviews, Tutorials"
+            <div className="flex flex-wrap gap-2">
+              {["Product Review", "Product Demo", "Testimonial", "Unboxing", "Lifestyle Content", "TikTok Trend / Social Trend", "Vlog / Day-in-the-life", "Voiceover / B-roll", "Problem → Solution Ad", "Social Media Management", "Personal Profile Post"].map((type) => (
+                <button
+                  key={type}
+                  onClick={() => {
+                    const current = Array.isArray(form.content_types) ? form.content_types : (form.content_types ? form.content_types.split(",").map(t => t.trim()) : []);
+                    const updated = current.includes(type)
+                      ? current.filter(t => t !== type)
+                      : [...current, type];
+                    set("content_types", updated);
+                  }}
+                  className={`px-4 py-2 rounded-full text-sm font-medium transition-all border ${
+                    (Array.isArray(form.content_types) ? form.content_types : (form.content_types ? form.content_types.split(",").map(t => t.trim()) : [])).includes(type)
+                      ? "bg-slate-700 text-white border-slate-700"
+                      : "bg-white text-slate-600 border-slate-300 hover:border-slate-400"
+                  }`}
+                >
+                  {type}
+                </button>
+              ))}
+            </div>
+          </div>
+
+          {/* Languages */}
+          <div>
+            <label className={labelStyle} style={{ color: "#374151" }}>Languages</label>
+            <input value={form.languages} onChange={(e) => set("languages", e.target.value)}
+              placeholder="English, Danish, French (comma separated)"
               className={inputStyle} style={inputVars} />
           </div>
 
@@ -642,6 +670,7 @@ function toFormValues(creator: Creator): typeof emptyForm {
     rates: creator.rates ?? "",
     tags: (creator.tags ?? []).join(", "),
     content_types: (creator.content_types ?? []).join(", "),
+    languages: (creator.languages ?? []).join(", "),
     creator_type: creator.creator_type ?? "",
     availability: creator.availability ?? "available",
     available_for_remote: creator.available_for_remote === true,
@@ -767,6 +796,7 @@ function CreatorsContent() {
         approved: form.approved,
         tags: form.tags ? form.tags.split(",").map((t: string) => t.trim()).filter(Boolean) : [],
         content_types: form.content_types ? form.content_types.split(",").map((t: string) => t.trim()).filter(Boolean) : [],
+        languages: form.languages ? form.languages.split(",").map((t: string) => t.trim()).filter(Boolean) : [],
         is_verified: form.is_verified,
         is_trending: form.is_trending,
         brand_collabs_text: form.brand_collabs_text || null,
@@ -1160,27 +1190,107 @@ function CreatorsContent() {
               className="w-full px-3 py-2 border border-border rounded-lg bg-card text-sm"
             />
 
-            {/* Content & Tags */}
+            {/* Content & Tags - READ-ONLY DISPLAY */}
             <fieldset className="space-y-3">
-              <legend className="text-xs font-semibold text-muted-foreground uppercase tracking-wider">Content</legend>
-              <input
-                type="text"
-                placeholder="Content types (comma-separated: UGC, Reels, TikTok)"
-                value={Array.isArray(editingSplitForm.content_types) ? editingSplitForm.content_types.join(", ") : ""}
-                onChange={(e) =>
-                  setEditingSplitForm({ ...editingSplitForm, content_types: e.target.value.split(",").map((s) => s.trim()).filter(Boolean) })
-                }
-                className="w-full px-3 py-2 border border-border rounded-lg bg-card text-sm"
-              />
-              <input
-                type="text"
-                placeholder="Niche tags (comma-separated: Lifestyle, Beauty, Minimal)"
-                value={Array.isArray(editingSplitForm.tags) ? editingSplitForm.tags.join(", ") : ""}
-                onChange={(e) =>
-                  setEditingSplitForm({ ...editingSplitForm, tags: e.target.value.split(",").map((s) => s.trim()).filter(Boolean) })
-                }
-                className="w-full px-3 py-2 border border-border rounded-lg bg-card text-sm"
-              />
+              <legend className="text-xs font-semibold text-muted-foreground uppercase tracking-wider">Content & Niche</legend>
+              
+              {/* Content Types - Read-only display */}
+              <div>
+                <label className="block text-xs font-medium mb-1.5" style={{ color: "#6b7280" }}>Content Types</label>
+                <div 
+                  className="w-full px-3 py-2 border border-border rounded-lg bg-card text-sm"
+                  style={{ color: "var(--foreground)" }}
+                >
+                  {(Array.isArray(editingSplitForm.content_types) && editingSplitForm.content_types.length > 0)
+                    ? editingSplitForm.content_types.join(", ")
+                    : <span style={{ color: "var(--muted-foreground)" }}>—</span>
+                  }
+                </div>
+              </div>
+
+              {/* Niche Tags - Read-only display */}
+              <div>
+                <label className="block text-xs font-medium mb-1.5" style={{ color: "#6b7280" }}>Niche Tags</label>
+                <div 
+                  className="w-full px-3 py-2 border border-border rounded-lg bg-card text-sm"
+                  style={{ color: "var(--foreground)" }}
+                >
+                  {(Array.isArray(editingSplitForm.tags) && editingSplitForm.tags.length > 0)
+                    ? editingSplitForm.tags.join(", ")
+                    : <span style={{ color: "var(--muted-foreground)" }}>—</span>
+                  }
+                </div>
+              </div>
+
+              {/* Languages - Read-only display */}
+              <div>
+                <label className="block text-xs font-medium mb-1.5" style={{ color: "#6b7280" }}>Languages</label>
+                <div 
+                  className="w-full px-3 py-2 border border-border rounded-lg bg-card text-sm"
+                  style={{ color: "var(--foreground)" }}
+                >
+                  {(Array.isArray(editingSplitForm.languages) && editingSplitForm.languages.length > 0)
+                    ? editingSplitForm.languages.join(", ")
+                    : <span style={{ color: "var(--muted-foreground)" }}>—</span>
+                  }
+                </div>
+              </div>
+            </fieldset>
+
+            {/* Edit Content Types & Tags Section */}
+            <fieldset className="space-y-3 p-3 bg-blue-50 rounded-lg border border-blue-200">
+              <legend className="text-xs font-semibold text-blue-900 uppercase tracking-wider">Edit Content & Niche</legend>
+              
+              <div>
+                <label className="block text-xs font-medium mb-2 text-blue-900">Content Types</label>
+                <div className="flex flex-wrap gap-2">
+                  {["Product Review", "Product Demo", "Testimonial", "Unboxing", "Lifestyle Content", "TikTok Trend / Social Trend", "Vlog / Day-in-the-life", "Voiceover / B-roll", "Problem → Solution Ad", "Social Media Management", "Personal Profile Post"].map((type) => (
+                    <button
+                      key={type}
+                      onClick={() => {
+                        const current = Array.isArray(editingSplitForm.content_types) ? editingSplitForm.content_types : [];
+                        const updated = current.includes(type)
+                          ? current.filter(t => t !== type)
+                          : [...current, type];
+                        setEditingSplitForm({ ...editingSplitForm, content_types: updated });
+                      }}
+                      className={`px-3 py-1.5 rounded-full text-xs font-medium transition-all border ${
+                        (Array.isArray(editingSplitForm.content_types) ? editingSplitForm.content_types : []).includes(type)
+                          ? "bg-blue-600 text-white border-blue-600"
+                          : "bg-white text-blue-700 border-blue-300 hover:border-blue-400"
+                      }`}
+                    >
+                      {type}
+                    </button>
+                  ))}
+                </div>
+              </div>
+
+              <div>
+                <label className="block text-xs font-medium mb-1.5 text-blue-900">Niche Tags (comma-separated)</label>
+                <input
+                  type="text"
+                  placeholder="e.g. Lifestyle, Beauty, Fashion"
+                  value={Array.isArray(editingSplitForm.tags) ? editingSplitForm.tags.join(", ") : ""}
+                  onChange={(e) =>
+                    setEditingSplitForm({ ...editingSplitForm, tags: e.target.value.split(",").map((s) => s.trim()).filter(Boolean) })
+                  }
+                  className="w-full px-3 py-2 border border-blue-300 rounded-lg bg-white text-sm"
+                />
+              </div>
+
+              <div>
+                <label className="block text-xs font-medium mb-1.5 text-blue-900">Languages (comma-separated)</label>
+                <input
+                  type="text"
+                  placeholder="e.g. English, Danish, French"
+                  value={Array.isArray(editingSplitForm.languages) ? editingSplitForm.languages.join(", ") : ""}
+                  onChange={(e) =>
+                    setEditingSplitForm({ ...editingSplitForm, languages: e.target.value.split(",").map((s) => s.trim()).filter(Boolean) })
+                  }
+                  className="w-full px-3 py-2 border border-blue-300 rounded-lg bg-white text-sm"
+                />
+              </div>
             </fieldset>
 
             {/* Social */}
