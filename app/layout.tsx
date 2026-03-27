@@ -1,6 +1,5 @@
 import type { Metadata } from "next";
 import "./globals.css";
-import PreviewBar from "@/components/PreviewBar";
 
 export const metadata: Metadata = {
   title: "Lumeya HQ",
@@ -19,10 +18,7 @@ export default function RootLayout({
         <link rel="preconnect" href="https://fonts.gstatic.com" crossOrigin="anonymous" />
         <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600&display=swap" rel="stylesheet" />
       </head>
-      <body>
-        <PreviewBar />
-        <div style={{ paddingTop: "44px" }}>{children}</div>
-      </body>
+      <body>{children}</body>
     </html>
   );
 }

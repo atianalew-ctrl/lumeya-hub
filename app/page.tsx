@@ -227,6 +227,67 @@ function DashboardContent() {
         </div>
       </section>
 
+      {/* Preview Mode - Quick switcher */}
+      <section>
+        <h2 className="text-xs font-semibold uppercase tracking-wider mb-3" style={{ color: "var(--muted-foreground)" }}>Preview Mode</h2>
+        <div className="rounded-xl p-6 border" style={{ background: "var(--card-bg)", borderColor: "var(--border)" }}>
+          <p className="text-xs text-muted-foreground mb-4">Open the live site pre-logged in as different user types:</p>
+          <div className="flex flex-wrap gap-3">
+            <a
+              href="/api/preview-link?type=brand"
+              onClick={(e) => {
+                e.preventDefault();
+                fetch("/api/preview-link", {
+                  method: "POST",
+                  headers: { "Content-Type": "application/json" },
+                  body: JSON.stringify({ type: "brand" }),
+                })
+                  .then(r => r.json())
+                  .then(d => {
+                    if (d.link) window.open(d.link, "_blank");
+                    else alert("Failed to generate link");
+                  })
+                  .catch(err => alert("Error: " + err.message));
+              }}
+              className="px-4 py-2.5 rounded-lg border font-medium text-sm transition-all hover:shadow-md hover:-translate-y-0.5"
+              style={{ background: "#16a34a", borderColor: "#15803d", color: "white" }}
+            >
+              🏢 View as Brand
+            </a>
+            <a
+              href="/api/preview-link?type=creator"
+              onClick={(e) => {
+                e.preventDefault();
+                fetch("/api/preview-link", {
+                  method: "POST",
+                  headers: { "Content-Type": "application/json" },
+                  body: JSON.stringify({ type: "creator" }),
+                })
+                  .then(r => r.json())
+                  .then(d => {
+                    if (d.link) window.open(d.link, "_blank");
+                    else alert("Failed to generate link");
+                  })
+                  .catch(err => alert("Error: " + err.message));
+              }}
+              className="px-4 py-2.5 rounded-lg border font-medium text-sm transition-all hover:shadow-md hover:-translate-y-0.5"
+              style={{ background: "#9333ea", borderColor: "#7e22ce", color: "white" }}
+            >
+              ✨ View as Creator
+            </a>
+            <a
+              href="https://lumeya-connect.vercel.app/creators"
+              target="_blank"
+              rel="noreferrer"
+              className="px-4 py-2.5 rounded-lg border font-medium text-sm transition-all hover:shadow-md hover:-translate-y-0.5"
+              style={{ background: "#1a1a1a", borderColor: "#333", color: "white" }}
+            >
+              👁️ View Public
+            </a>
+          </div>
+        </div>
+      </section>
+
       {/* Latest Deploy */}
       <section>
         <h2 className="text-xs font-semibold uppercase tracking-wider mb-3" style={{ color: "var(--muted-foreground)" }}>Latest Deploy</h2>
